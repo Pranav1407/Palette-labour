@@ -1,4 +1,4 @@
-import { ArrowLeft, Plus, X, Camera, Map } from "lucide-react"
+import { ArrowLeft, Plus, X, Camera, Map, Check, Upload } from "lucide-react"
 import { useNavigate, useParams } from "react-router-dom"
 import { hoardingData } from "@/mockData"
 import { Card, CardContent } from "@/components/ui/card"
@@ -9,9 +9,13 @@ export default function HoardingDetail() {
   const { id } = useParams()
   const [isOpen, setIsOpen] = useState(false)
   const [cameraImages, setCameraImages] = useState<string[]>([])
+  const [cameraVideos, setCameraVideos] = useState<string[]>([])
   const [geoMapImage, setGeoMapImage] = useState<string>('')
   //@ts-ignore
   const hoarding = hoardingData.find(item => item.id == id)
+  const [loading, setLoading] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
+
 
   if (!hoarding) return null
 
@@ -23,11 +27,36 @@ export default function HoardingDetail() {
       setCameraImages(prev => [...prev, imageUrl])
     }
   }
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setIsOpen(false);
+    const files = Array.from(event.target.files || []);
+    
+    files.forEach(file => {
+      if (file.type.startsWith('image/')) {
+        // Handle image files
+        const imageUrl = URL.createObjectURL(file);
+        setCameraImages(prev => [...prev, imageUrl]);
+      } else if (file.type.startsWith('video/')) {
+        // Handle video files - restrict to 1
+        if (cameraVideos.length === 0) {
+          const videoUrl = URL.createObjectURL(file);
+          setCameraVideos([videoUrl]); // Replace existing video if any
+        } else {
+          alert('Only one video file is allowed');
+        }
+      }
+    });
+  };
+  
+  
+
   const handleGeoMapImageCapture = async (event: React.ChangeEvent<HTMLInputElement>) => {
     setIsOpen(false);
     const file = event.target.files?.[0]
     
     if (file) {
+      setLoading(true);
       try {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject);
@@ -35,9 +64,6 @@ export default function HoardingDetail() {
         
         const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${position.coords.latitude}&lon=${position.coords.longitude}&format=json`);
         const locationData = await response.json();
-
-        console.log(locationData);
-        
         const img = new Image();
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
@@ -147,15 +173,14 @@ export default function HoardingDetail() {
         };
         
         img.src = URL.createObjectURL(file);
-        
+        setLoading(false);
       } catch (error) {
-        console.error('Error getting location:', error);
+        setLoading(false);
         const imageUrl = URL.createObjectURL(file);
         setGeoMapImage(imageUrl);
       }
     }
   }
-  
 
   return (
     <div className="min-h-screen bg-[#FCFCFC]">
@@ -175,17 +200,27 @@ export default function HoardingDetail() {
               <h2 className="text-xl align-middle font-medium mt-2">
                 {hoarding.hoarding_name}
               </h2>
-              <div></div>
+              {geoMapImage && cameraImages.length > 0 && cameraVideos.length > 0 ? (
+                <div onClick={() => {
+                  setShowSuccess(true);
+                  setTimeout(() => {
+                    navigate('/home');  // Redirect to home page
+                  }, 2000);  // Wait for 2 seconds
+                }}>
+                  <Check size={36} className="text-green-500 cursor-pointer" />
+                </div>
+              ) : <div />}
+
             </div>
-            <div className="w-6" />
+            <div className="w-2" />
           </div>
         </CardContent>
       </Card>
 
       <div className="p-4 flex flex-col relative h-[calc(100vh-180px)] overflow-y-auto scrollbar-hide">
-        {cameraImages.length === 0 && !geoMapImage ? (
+        {cameraImages.length === 0 && cameraVideos.length === 0 && !geoMapImage ? (
           <h1 className="text-3xl text-[#d9d9d9] font-regular text-center mt-[70%]">
-            Share images/videos for approval
+            {loading ? "Processing Image..." : "Share images/videos for approval"}
           </h1>
         ) : (
           <div className="space-y-6 mb-24">
@@ -239,6 +274,33 @@ export default function HoardingDetail() {
                 </div>
               </div>
             )}
+
+            {cameraVideos.length > 0 && (
+              <div>
+                <h3 className="text-2xl font-semibold mb-2 text-left">Video</h3>
+                <div className="w-full">
+                  <div className="relative">
+                    <video 
+                      src={cameraVideos[0]}
+                      controls
+                      autoPlay={false}
+                      playsInline
+                      preload="metadata"
+                      className="w-full h-48 object-cover rounded-lg"
+                    >
+                      <source src={cameraVideos[0]} type="video/mp4" />
+                      Your browser does not support the video tag.
+                    </video>
+                    <button 
+                      className="absolute top-2 right-2 bg-red-500 rounded-full p-1"
+                      onClick={() => setCameraVideos([])}
+                    >
+                      <X size={16} className="text-white" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -282,6 +344,24 @@ export default function HoardingDetail() {
           </div>
 
           <div
+            className={`h-24 w-24 rounded-full p-6 bg-[rgb(72,63,176,0.61)] shadow-lg transition-all duration-300 flex flex-col items-center ${
+              isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'
+            }`}
+          >
+           <label htmlFor="uploadInput" className="cursor-pointer">
+              <Upload size={48} className="text-white" />
+              <input
+                id="uploadInput"
+                type="file"
+                accept="image/*,video/*"
+                multiple
+                className="hidden"
+                onChange={handleFileUpload}
+              />
+            </label>
+          </div>
+
+          <div
             className="h-24 w-24 rounded-full hover:shadow-2xl transition-all duration-300 p-4"
             style={{
               backgroundColor: isOpen ? '' : '#4BB543',
@@ -297,6 +377,13 @@ export default function HoardingDetail() {
           </div>
         </div>
       </div>
+      {showSuccess && (
+        <div className="fixed inset-0 bg-green-500 flex flex-col items-center justify-center z-50">
+          <Check size={80} className="text-white mb-4" />
+          <h2 className="text-white text-3xl font-bold">Upload Successful!</h2>
+        </div>
+      )}
+
     </div>
   )
 }
