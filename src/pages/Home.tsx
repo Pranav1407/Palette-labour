@@ -1,6 +1,5 @@
 import { Input } from "@/components/ui/input"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Search, Menu, Check, Info, LogOut, X, Plus, Clock } from "lucide-react"
+import { Search, Menu, Check, Info, LogOut, Plus, Clock } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,7 +18,6 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState("all")
   const [searchQuery, setSearchQuery] = useState("")
   const [hoardingData, setHoardingData] = useState<HoardingData[]>()
-  const [isOpen, setIsOpen] = useState(false)
   const navigate = useNavigate()
 
   const getHoardings = async () => {
