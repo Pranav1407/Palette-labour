@@ -1,23 +1,39 @@
-import { ArrowLeft, Plus, X, Camera, Map, Check, Upload } from "lucide-react"
-import { useNavigate, useParams } from "react-router-dom"
-import { hoardingData } from "@/mockData"
+import { ArrowLeft, Plus, X, Camera, Map, Upload } from "lucide-react"
+import { useNavigate, useLocation } from "react-router-dom"
+// import { hoardingData } from "@/mockData"
 import { Card, CardContent } from "@/components/ui/card"
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { uploadMedia, addHoardingTask, fetchSingleHoarding } from "@/data/requests";
+import { SingleHoarding } from "@/types/Types";
+import toast from "react-hot-toast";
 
 export default function HoardingDetail() {
-  const navigate = useNavigate()
-  const { id } = useParams()
+  const navigate = useNavigate();
+  const location = useLocation();
+  const code = location.state.hoardingcode;
+  const id = location.state.hoardingID;
   const [isOpen, setIsOpen] = useState(false)
   const [cameraImages, setCameraImages] = useState<string[]>([])
   const [cameraVideos, setCameraVideos] = useState<string[]>([])
   const [geoMapImage, setGeoMapImage] = useState<string>('')
-  //@ts-ignore
-  const hoarding = hoardingData.find(item => item.id == id)
+  const [hoardingData, setHoardingData] = useState<SingleHoarding>()
   const [loading, setLoading] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [addingTask, setAddingTask] = useState(false)
 
+  const fetchHoardingDetail = async () => {
+    try {
+      const response = await fetchSingleHoarding(code);
+      setHoardingData(response.payload.hoarding_details);
+    } catch (error) {
+      console.error('Error fetching hoarding detail:', error);
+    }
+  }
 
-  if (!hoarding) return null
+  useEffect(() => {
+    fetchHoardingDetail();
+  },[id]);
 
   const handleCameraImageCapture = (event: React.ChangeEvent<HTMLInputElement>) => {
     setIsOpen(false);
@@ -48,9 +64,62 @@ export default function HoardingDetail() {
       }
     });
   };
-  
-  
 
+  const handleSubmitMedia = async () => {
+    setUploading(true);
+
+    const formData = new FormData();
+    const user_id = sessionStorage.getItem('user_id');
+    
+    formData.append('uploaded_by', user_id || '');
+    formData.append('hoarding_id', id || '');
+  
+    if (geoMapImage) {
+      const geoMapBlob = await fetch(geoMapImage).then(r => r.blob());
+      formData.append('geo_images', geoMapBlob);
+    }
+  
+    await Promise.all(
+      cameraImages.map(async (imageUrl) => {
+        const imageBlob = await fetch(imageUrl).then(r => r.blob());
+        formData.append(`images`, imageBlob);
+      })
+    );
+  
+    if (cameraVideos.length > 0) {
+      const videoBlob = await fetch(cameraVideos[0]).then(r => r.blob());
+      formData.append('video', videoBlob);
+    }
+  
+    try {
+      const mediaResponse = await uploadMedia(formData);
+      console.log('Media upload response:', mediaResponse);
+      const taskData = {
+        hoarding_id: Number(id),
+        current_status: "pending",
+        media_ids: mediaResponse.payload.media_id,
+        rejection_count: 0,
+        action_by: 0,
+        requested_by: Number(user_id),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      try {
+        await addHoardingTask(taskData);
+        setAddingTask(false);
+        setTimeout(() => {
+          setShowSuccess(true);
+          navigate('/home');
+        }, 2000);
+      } catch (error) {
+        toast.error('Error adding task. Please try again later.');
+      }
+    } catch (error) {
+      toast.error('Error uploading media. Please try again later.');
+    }
+};
+
+  
   const handleGeoMapImageCapture = async (event: React.ChangeEvent<HTMLInputElement>) => {
     setIsOpen(false);
     const file = event.target.files?.[0]
@@ -186,70 +255,71 @@ export default function HoardingDetail() {
     <div className="min-h-screen bg-[#FCFCFC]">
       <Card className="rounded-none">
         <CardContent className="p-4">
-          <div className="flex items-center gap-4">
-            <ArrowLeft 
-              className="h-6 w-6 cursor-pointer" 
-              onClick={() => navigate(-1)}
-            />
-            <div className="flex items-center flex-1 justify-between">
-              <img 
-                src={hoarding.image_url} 
-                alt={hoarding.hoarding_name}
-                className="w-20 h-20 object-cover rounded-full"
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <ArrowLeft 
+                className="h-6 w-6 cursor-pointer" 
+                onClick={() => navigate(-1)}
               />
-              <h2 className="text-xl align-middle font-medium mt-2">
-                {hoarding.hoarding_name}
-              </h2>
-              {geoMapImage && cameraImages.length > 0 && cameraVideos.length > 0 ? (
-                <div onClick={() => {
-                  setShowSuccess(true);
-                  setTimeout(() => {
-                    navigate('/home');  // Redirect to home page
-                  }, 2000);  // Wait for 2 seconds
-                }}>
-                  <Check size={36} className="text-green-500 cursor-pointer" />
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <img 
+                      src="https://images.unsplash.com/photo-1563990308267-cd6d3cc09318?q=80&w=1000&auto=format&fit=crop"
+                      alt={hoardingData && hoardingData["Location/Route"]}
+                      className="w-20 h-20 object-cover rounded-full"
+                  />
+                  <div className="space-y-2">
+                    <h3 className="font-medium">{hoardingData && hoardingData["Location/Route"]}</h3>
+                    <p className="text-sm text-gray-600">{hoardingData && hoardingData.District}</p>
+                  </div>
                 </div>
-              ) : <div />}
-
+              </div>
             </div>
-            <div className="w-2" />
+            <div
+              onClick={handleSubmitMedia}
+              className={
+                (geoMapImage && cameraImages.length) ? "bg-[#4BB543] text-white p-2 px-4 rounded-lg cursor-pointer" : ''
+              }
+            >
+              {(geoMapImage && cameraImages.length) && (uploading ? 'Uploading...' : 'Upload')}
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="p-4 flex flex-col relative h-[calc(100vh-180px)] overflow-y-auto scrollbar-hide">
+      <div className="p-4 flex flex-col items-center justify-center relative h-[calc(100vh-180px)] overflow-y-auto scrollbar-hide">
         {cameraImages.length === 0 && cameraVideos.length === 0 && !geoMapImage ? (
-          <h1 className="text-3xl text-[#d9d9d9] font-regular text-center mt-[70%]">
+          <h1 className="text-3xl text-[#d9d9d9] font-regular text-center">
             {loading ? "Processing Image..." : "Share images/videos for approval"}
           </h1>
         ) : (
           <div className="space-y-6 mb-24">
             {geoMapImage && (<>
-                <h3 className="text-2xl font-semibold mb-2 text-left">Geo Map Image</h3>
+              <h3 className="text-2xl font-semibold mb-2 text-left">Geo Map Image</h3>
               <div className="relative inline-block">
-                <img 
-                    src={geoMapImage} 
-                    alt="Geo Map" 
-                    className="w-full h-48 object-cover rounded-lg cursor-pointer"
-                    onClick={() => {
+                <img
+                  src={geoMapImage}
+                  alt="Geo Map"
+                  className="w-full h-48 object-cover rounded-lg cursor-pointer"
+                  onClick={() => {
                     const link = document.createElement('a')
                     link.href = geoMapImage
                     link.download = `geomap-${Date.now()}.jpg`
                     document.body.appendChild(link)
                     link.click()
                     document.body.removeChild(link)
-                    }}
+                  }}
                 />
                 <button 
                     className="absolute top-2 right-2 bg-red-500 rounded-full p-1"
                     onClick={(e) => {
-                        e.stopPropagation() // Prevent download when clicking delete
+                        e.stopPropagation()
                         setGeoMapImage('')
                     }}
                 >
                     <X size={16} className="text-white" />
                 </button>
-              </div>            
+              </div>     
             </>)}
 
             {cameraImages.length > 0 && (
@@ -379,11 +449,12 @@ export default function HoardingDetail() {
       </div>
       {showSuccess && (
         <div className="fixed inset-0 bg-green-500 flex flex-col items-center justify-center z-50">
-          <Check size={80} className="text-white mb-4" />
-          <h2 className="text-white text-3xl font-bold">Upload Successful!</h2>
+          <div className="loader" />
+          <h2 className="text-white text-3xl font-bold">
+            {uploading ? 'Uploading...' : addingTask ? 'Adding Task...' : 'Request Sent!'}
+          </h2>
         </div>
       )}
-
     </div>
   )
 }

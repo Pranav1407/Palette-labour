@@ -3,6 +3,8 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import HoardingDetail from "./pages/HoardingDetail";
 import ImagePreview from "./pages/PreviewScreen";
+import { ProtectedRoute } from "./components/ProtectedRoute";
+import NewRequest from "./pages/NewRequest";
 
 export const router = createBrowserRouter([
   {
@@ -11,14 +13,18 @@ export const router = createBrowserRouter([
   },
   {
     path: "/home",
-    element: <Home />,
+    element: <ProtectedRoute><Home /></ProtectedRoute>,
   },
   {
     path: "/hoarding/:id",
-    element: <HoardingDetail />,
+    element: <ProtectedRoute><HoardingDetail /></ProtectedRoute>,
   },
   {
     path: "/preview",
-    element: <ImagePreview />,
+    element: <ProtectedRoute><ImagePreview /></ProtectedRoute>,
+  },
+  {
+    path: "/new-request",
+    element: <ProtectedRoute><NewRequest /></ProtectedRoute>,
   }
 ]);

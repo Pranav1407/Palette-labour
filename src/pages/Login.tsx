@@ -1,11 +1,33 @@
 import { Button } from "@/components/ui/button"
+import { loginUser } from "@/data/requests"
 import { useState } from "react"
 import { FaEye, FaEyeSlash } from "react-icons/fa"
-import { Link } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
+import toast from "react-hot-toast"
 
 
 function Login() {
     const [showPassword, setShowPassword] = useState(false)
+    const [credentials, setCredentials] = useState({
+        username: "",
+        password: ""
+    })
+    const navigate = useNavigate()
+
+    const handleLogin = async () => {
+        const data = await loginUser(credentials);
+        if (data.payload.role === "labour") {
+            sessionStorage.setItem("user_id", data.payload.user_id.toString())
+            navigate('/home')
+        } else {
+            toast.error("You are not authorized to login")
+        }
+    };
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        handleLogin();
+    }
 
     return (
         <div className="min-h-screen w-full flex justify-center">
@@ -25,12 +47,14 @@ function Login() {
                             <h1 className="text-2xl font-regular mb-10">Welcome! Let's get you signed in.</h1>
                         </div>
 
-                        <form className="space-y-4">
+                        <form className="space-y-4" onSubmit={handleSubmit}>
                             <div className="space-y-2">
                                 <input
                                     type="text"
                                     placeholder="Email / Employee ID"
                                     className="w-full px-3 py-4 border rounded-md outline-none"
+                                    value={credentials.username}
+                                    onChange={(e) => setCredentials({...credentials, username: e.target.value})}
                                 />
                             </div>
 
@@ -39,6 +63,8 @@ function Login() {
                                     type={showPassword ? "text" : "password"}
                                     placeholder="Password"
                                     className="w-full px-3 py-4 border rounded-md outline-none"
+                                    value={credentials.password}
+                                    onChange={(e) => setCredentials({...credentials, password: e.target.value})}
                                 />
                                 <button
                                     type="button"
@@ -49,11 +75,9 @@ function Login() {
                                 </button>
                             </div>
 
-                            <Link to={'/home'}>
-                                <Button className="w-full mt-8">
-                                    Login
-                                </Button>
-                            </Link>
+                            <Button type="submit" className="w-full mt-8">
+                                Login
+                            </Button>
                         </form>
                     </div>
                 </div>
