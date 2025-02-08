@@ -6,21 +6,35 @@ import { useState, useEffect } from "react"
 import { uploadMedia, addHoardingTask, fetchSingleHoarding } from "@/data/requests";
 import { SingleHoarding } from "@/types/Types";
 import toast from "react-hot-toast";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function HoardingDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const code = location.state.hoardingcode;
   const id = location.state.hoardingID;
-  const [isOpen, setIsOpen] = useState(false)
+  const rejected_media_ids = location.state.rejectedMediaIds;
   const [cameraImages, setCameraImages] = useState<string[]>([])
   const [cameraVideos, setCameraVideos] = useState<string[]>([])
   const [geoMapImage, setGeoMapImage] = useState<string>('')
   const [hoardingData, setHoardingData] = useState<SingleHoarding>()
-  const [loading, setLoading] = useState(false)
+  // const [loading, setLoading] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [addingTask, setAddingTask] = useState(false)
+  const [showOptions, setShowOptions] = useState(false);
+
+  const menuVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: (index: number) => ({
+      opacity: 1,
+      y: 0,
+      transition: {
+        delay: index * 0.1,
+        duration: 0.3,
+      },
+    }),
+  };
 
   const fetchHoardingDetail = async () => {
     try {
@@ -35,8 +49,10 @@ export default function HoardingDetail() {
     fetchHoardingDetail();
   },[id]);
 
+  console.log("rejected_media_ids", rejected_media_ids);
+
   const handleCameraImageCapture = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setIsOpen(false);
+    // setShowOptions(false);
     const file = event.target.files?.[0]
     if (file) {
       const imageUrl = URL.createObjectURL(file)
@@ -45,7 +61,7 @@ export default function HoardingDetail() {
   }
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setIsOpen(false);
+    setShowOptions(false);
     const files = Array.from(event.target.files || []);
     
     files.forEach(file => {
@@ -121,11 +137,11 @@ export default function HoardingDetail() {
 
   
   const handleGeoMapImageCapture = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    setIsOpen(false);
+    setShowOptions(false);
     const file = event.target.files?.[0]
     
     if (file) {
-      setLoading(true);
+      // setLoading(true);
       try {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject);
@@ -242,9 +258,9 @@ export default function HoardingDetail() {
         };
         
         img.src = URL.createObjectURL(file);
-        setLoading(false);
+        // setLoading(false);
       } catch (error) {
-        setLoading(false);
+        // setLoading(false);
         const imageUrl = URL.createObjectURL(file);
         setGeoMapImage(imageUrl);
       }
@@ -252,7 +268,7 @@ export default function HoardingDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FCFCFC]">
+    <div className="flex flex-col gap-4 bg-[#FCFCFC]">
       <Card className="rounded-none">
         <CardContent className="p-4">
           <div className="flex items-center justify-between">
@@ -275,178 +291,190 @@ export default function HoardingDetail() {
                 </div>
               </div>
             </div>
-            <div
-              onClick={handleSubmitMedia}
-              className={
-                (geoMapImage && cameraImages.length) ? "bg-[#4BB543] text-white p-2 px-4 rounded-lg cursor-pointer" : ''
-              }
-            >
-              {(geoMapImage && cameraImages.length) && (uploading ? 'Uploading...' : 'Upload')}
-            </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="p-4 flex flex-col items-center justify-center relative h-[calc(100vh-180px)] overflow-y-auto scrollbar-hide">
-        {cameraImages.length === 0 && cameraVideos.length === 0 && !geoMapImage ? (
-          <h1 className="text-3xl text-[#d9d9d9] font-regular text-center">
-            {loading ? "Processing Image..." : "Share images/videos for approval"}
-          </h1>
-        ) : (
-          <div className="space-y-6 mb-24">
-            {geoMapImage && (<>
-              <h3 className="text-2xl font-semibold mb-2 text-left">Geo Map Image</h3>
-              <div className="relative inline-block">
-                <img
-                  src={geoMapImage}
-                  alt="Geo Map"
-                  className="w-full h-48 object-cover rounded-lg cursor-pointer"
-                  onClick={() => {
-                    const link = document.createElement('a')
-                    link.href = geoMapImage
-                    link.download = `geomap-${Date.now()}.jpg`
-                    document.body.appendChild(link)
-                    link.click()
-                    document.body.removeChild(link)
-                  }}
-                />
-                <button 
-                    className="absolute top-2 right-2 bg-red-500 rounded-full p-1"
-                    onClick={(e) => {
-                        e.stopPropagation()
-                        setGeoMapImage('')
-                    }}
-                >
-                    <X size={16} className="text-white" />
-                </button>
-              </div>     
-            </>)}
+      <div className="px-4 flex flex-col gap-4 relative height-[calc(100vh-120px)] overflow-y-auto scrollbar-hide">
+        {(geoMapImage.length > 0 && cameraImages.length > 0) &&
+          <div
+            onClick={handleSubmitMedia}
+            className={"bg-[#4BB543] text-white p-2 px-4 rounded-lg cursor-pointer text-center w-fit mx-auto"}
+          >
+            {uploading ? 'Uploading...' : 'Upload'}
+          </div>
+        }
+        {(geoMapImage.length <= 0 && cameraImages.length <= 0) &&
+          <div
+            className="text-[#d9d9d9] text-[32px] text-center px-2"
+          >
+            Share images/videos for approval.
+          </div>
+        }
+        <div className="space-y-6 mb-24">
+          {geoMapImage && (<>
+            <h3 className="text-2xl font-semibold mb-2 text-left">Geo Map Image</h3>
+            <div className="relative inline-block">
+              <img
+                src={geoMapImage}
+                alt="Geo Map"
+                className="w-full h-48 object-cover rounded-lg cursor-pointer"
+                onClick={() => {
+                  const link = document.createElement('a')
+                  link.href = geoMapImage
+                  link.download = `geomap-${Date.now()}.jpg`
+                  document.body.appendChild(link)
+                  link.click()
+                  document.body.removeChild(link)
+                }}
+              />
+              <button 
+                className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1"
+                onClick={() => setGeoMapImage('')}
+              >
+                <X size={16} className="text-white" />
+              </button>
+            </div>
+          </>)}
 
-            {cameraImages.length > 0 && (
-              <div>
-                <h3 className="text-2xl font-semibold mb-2 text-left">Camera Images</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  {cameraImages.map((image, index) => (
-                    <div key={index} className="relative">
-                      <img 
-                        src={image} 
-                        alt={`Captured ${index + 1}`} 
-                        className="w-full h-48 object-cover rounded-lg"
-                      />
-                      <button 
-                        className="absolute top-2 right-2 bg-red-500 rounded-full p-1"
-                        onClick={() => setCameraImages(prev => prev.filter((_, i) => i !== index))}
-                      >
-                        <X size={16} className="text-white" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {cameraVideos.length > 0 && (
-              <div>
-                <h3 className="text-2xl font-semibold mb-2 text-left">Video</h3>
-                <div className="w-full">
-                  <div className="relative">
-                    <video 
-                      src={cameraVideos[0]}
-                      controls
-                      autoPlay={false}
-                      playsInline
-                      preload="metadata"
+          {cameraImages.length > 0 && (
+            <div>
+              <h3 className="text-2xl font-semibold mb-2 text-left">Camera Images</h3>
+              <div className="grid grid-cols-2 gap-4">
+                {cameraImages.map((image, index) => (
+                  <div key={index} className="relative">
+                    <img 
+                      src={image} 
+                      alt={`Captured ${index + 1}`} 
                       className="w-full h-48 object-cover rounded-lg"
-                    >
-                      <source src={cameraVideos[0]} type="video/mp4" />
-                      Your browser does not support the video tag.
-                    </video>
+                    />
                     <button 
-                      className="absolute top-2 right-2 bg-red-500 rounded-full p-1"
-                      onClick={() => setCameraVideos([])}
+                      className="absolute -top-2 -right-2 bg-red-500 rounded-full p-1"
+                      onClick={() => setCameraImages(prev => prev.filter((_, i) => i !== index))}
                     >
                       <X size={16} className="text-white" />
                     </button>
                   </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {cameraVideos.length > 0 && (
+            <div>
+              <h3 className="text-2xl font-semibold mb-2 text-left">Video</h3>
+              <div className="w-full">
+                <div className="relative">
+                  <video 
+                    src={cameraVideos[0]}
+                    controls
+                    autoPlay={false}
+                    playsInline
+                    preload="metadata"
+                    className="w-full h-48 object-cover rounded-lg"
+                  >
+                    <source src={cameraVideos[0]} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                  <button 
+                    className="absolute top-2 right-2 bg-red-500 rounded-full p-1"
+                    onClick={() => setCameraVideos([])}
+                  >
+                    <X size={16} className="text-white" />
+                  </button>
                 </div>
               </div>
+            </div>
+          )}
+        </div>
+
+        <div className="fixed bottom-6 right-6 flex flex-col gap-3">
+          <AnimatePresence>
+            {showOptions && (
+              <>
+                <motion.div
+                  initial="hidden"
+                  animate="visible"
+                  exit="hidden"
+                  variants={menuVariants}
+                  custom={0}
+                >
+                  <div className="rounded-full p-4 bg-emerald-500 text-white">
+                    <label htmlFor="geoMapInput">
+                      <Map size={36} />
+                      <input
+                        id="geoMapInput"
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        onChange={handleGeoMapImageCapture}
+                      />
+                    </label>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial="hidden"
+                  animate="visible"
+                  exit="hidden"
+                  variants={menuVariants}
+                  custom={1}
+                >
+                  <div className="rounded-full p-4 bg-blue-500 hover:bg-blue-600 text-white">
+                    <label htmlFor="cameraInput">
+                      <Camera size={36} />
+                      <input
+                        id="cameraInput"
+                        type="file"
+                        accept="image/*"
+                        capture="user"
+                        className="hidden"
+                        onChange={handleCameraImageCapture}
+                      />
+                    </label>
+                  </div>
+                </motion.div>
+
+                <motion.div
+                  initial="hidden"
+                  animate="visible"
+                  exit="hidden"
+                  variants={menuVariants}
+                  custom={2}
+                >
+                  <div className="rounded-full p-4 bg-purple-500 hover:bg-purple-600 text-white">
+                    <label htmlFor="uploadInput">
+                      <Upload size={36} />
+                      <input
+                        id="uploadInput"
+                        type="file"
+                        accept="image/*,video/*"
+                        multiple
+                        className="hidden"
+                        onChange={handleFileUpload}
+                      />
+                    </label>
+                  </div>
+                </motion.div>
+              </>
             )}
-          </div>
-        )}
+          </AnimatePresence>
 
-        <div className="fixed bottom-20 right-1/2 transform translate-x-1/2 flex flex-col items-center gap-4">
-          <div
-            className={`h-24 w-24 rounded-full p-6 bg-[#F48D49] shadow-lg transition-all duration-300 flex items-center ${
-              isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'
-            }`}
+          <motion.div
+            animate={{ rotate: showOptions ? 135 : 0 }}
+            transition={{ duration: 0.2 }}
           >
-            <label htmlFor="geoMapInput" className="cursor-pointer">
-              <Map size={48} className="text-white" />
-              {/* <span className="text-sm mt-1 text-white">Geo Map</span> */}
-              <input
-                id="geoMapInput"
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handleGeoMapImageCapture}
-              />
-            </label>
-          </div>
-
-          <div
-            className={`h-24 w-24 rounded-full p-6 bg-[rgb(72,63,176,0.61)] shadow-lg transition-all duration-300 flex flex-col items-center ${
-              isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'
-            }`}
-          >
-            <label htmlFor="cameraInput" className="cursor-pointer">
-              <Camera size={48} className="text-white" />
-              {/* <span className="text-sm mt-1 text-white">Camera</span> */}
-              <input
-                id="cameraInput"
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handleCameraImageCapture}
-              />
-            </label>
-          </div>
-
-          <div
-            className={`h-24 w-24 rounded-full p-6 bg-[rgb(72,63,176,0.61)] shadow-lg transition-all duration-300 flex flex-col items-center ${
-              isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'
-            }`}
-          >
-           <label htmlFor="uploadInput" className="cursor-pointer">
-              <Upload size={48} className="text-white" />
-              <input
-                id="uploadInput"
-                type="file"
-                accept="image/*,video/*"
-                multiple
-                className="hidden"
-                onChange={handleFileUpload}
-              />
-            </label>
-          </div>
-
-          <div
-            className="h-24 w-24 rounded-full hover:shadow-2xl transition-all duration-300 p-4"
-            style={{
-              backgroundColor: isOpen ? '' : '#4BB543',
-              boxShadow: isOpen ? '' : '0px 0px 10px 0px rgba(0,0,0,0.2)',
-            }}
-            onClick={() => setIsOpen(!isOpen)}
-          >
-            {isOpen ? (
-              <X size={64} className="transition-transform duration-300 rotate-0" />
-            ) : (
-              <Plus size={64} className="text-white transition-transform duration-300 rotate-0" />
-            )}
-          </div>
+            <div
+              className="rounded-full p-4 bg-primary hover:bg-primary/90 text-white"
+              onClick={() => setShowOptions(!showOptions)}
+            >
+              <Plus size={36} />
+            </div>
+          </motion.div>
         </div>
       </div>
+
       {showSuccess && (
         <div className="fixed inset-0 bg-green-500 flex flex-col items-center justify-center z-50">
           <div className="loader" />

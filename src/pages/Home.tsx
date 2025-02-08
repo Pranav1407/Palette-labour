@@ -10,7 +10,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent } from "@/components/ui/card"
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-// import { hoardingData } from "@/mockData"
 import { fetchHoardings } from "@/data/requests"
 import { HoardingData } from "@/types/Types"
 
@@ -72,14 +71,14 @@ export default function Home() {
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="pending">Pending</TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
+            <TabsTrigger value="approved">Completed</TabsTrigger>
             <TabsTrigger value="rejected">Rejected</TabsTrigger>
           </TabsList>
 
           <div className="mt-6 h-[calc(100vh-300px)] overflow-y-auto scrollbar-hide space-y-4">
             {filteredData.length === 0 ? (
               <div className="flex items-center justify-center h-full text-[#D9D9D9] text-4xl">
-                No work today!
+                No hoardings found
               </div>
             ) : (
                 <>
@@ -92,7 +91,8 @@ export default function Home() {
                           'rgb(75, 181, 67, 0.45)',
                           cursor: 'pointer'
                         }}
-                        onClick={() => navigate(`/hoarding/${item.hoarding_details.Hoarding_ID}`, { state: { hoardingcode: item.hoarding_details["Hoarding Code"]} })}
+                        onClick={() => 
+                          navigate(`/request-history/${item.request_id}`)}
                     >
                       <CardContent className="p-4">
                           <div className="flex items-center justify-between gap-4">
@@ -100,7 +100,7 @@ export default function Home() {
                               <img 
                                 src="https://images.unsplash.com/photo-1559060017-445fb9722f2a"
                                 alt={item.hoarding_details["Location/Route"]}
-                                className="w-20 h-20 object-cover rounded-full"
+                                className="w-20 h-20 min-w-20 min-h-20 object-cover rounded-full"
                               />
                               <div className="space-y-2">
                                 <h3 className="font-medium">{item.hoarding_details["Location/Route"]}</h3>
@@ -109,7 +109,7 @@ export default function Home() {
                               </div>
                             </div>
                             <div className="space-y-2">
-                              {item.current_status === 'completed' ? (
+                              {item.current_status === 'approved' ? (
                                   <Check className="h-5 w-5 text-green-700" />
                               ) : item.current_status === 'pending' ? (
                                   <Clock className="h-5 w-5 text-yellow-500" />

@@ -5,6 +5,7 @@ import HoardingDetail from "./pages/HoardingDetail";
 import ImagePreview from "./pages/PreviewScreen";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import NewRequest from "./pages/NewRequest";
+import RequestHistory from "./pages/RequestHistory";
 
 export const router = createBrowserRouter([
   {
@@ -26,5 +27,9 @@ export const router = createBrowserRouter([
   {
     path: "/new-request",
     element: <ProtectedRoute><NewRequest /></ProtectedRoute>,
+  },
+  {
+    path: "/request-history/:id",
+    element: <ProtectedRoute><RequestHistory /></ProtectedRoute>,
   }
 ]);

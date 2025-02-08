@@ -12,15 +12,21 @@ function Login() {
         username: "",
         password: ""
     })
-    const navigate = useNavigate()
+    const navigate = useNavigate();
+    const [error, setError] = useState("")
 
     const handleLogin = async () => {
-        const data = await loginUser(credentials);
-        if (data.payload.role === "labour") {
-            sessionStorage.setItem("user_id", data.payload.user_id.toString())
-            navigate('/home')
-        } else {
-            toast.error("You are not authorized to login")
+        try {
+            const data = await loginUser(credentials);
+            if (data.payload.role === "labour") {
+                sessionStorage.setItem("user_id", data.payload.user_id.toString())
+                navigate('/home')
+            } else {
+                toast.error("You are not authorized to login")
+            }
+        } catch (error) {
+            //@ts-expect-error error.response.data.detail
+            setError(error.response.data.detail);
         }
     };
 
@@ -37,7 +43,7 @@ function Login() {
                 }}
             >
                 <div className="h-full mx-auto w-full flex flex-col space-y-6">
-                    <div className="h-1/4">hi</div>
+                    <div className="h-1/4"></div>
                     <div className="w-full h-full p-4 pt-[40%]"
                          style={{
                              background: 'linear-gradient(to top, rgba(255, 255, 255, 1), rgba(255, 255, 255, 1) 40%, rgba(255, 255, 255, 0.3))'
@@ -46,7 +52,7 @@ function Login() {
                         <div className="w-4/6 ml-20 p-1">
                             <h1 className="text-2xl font-regular mb-10">Welcome! Let's get you signed in.</h1>
                         </div>
-
+    
                         <form className="space-y-4" onSubmit={handleSubmit}>
                             <div className="space-y-2">
                                 <input
@@ -57,7 +63,7 @@ function Login() {
                                     onChange={(e) => setCredentials({...credentials, username: e.target.value})}
                                 />
                             </div>
-
+    
                             <div className="space-y-2 relative">
                                 <input
                                     type={showPassword ? "text" : "password"}
@@ -71,10 +77,12 @@ function Login() {
                                     className="absolute right-3 top-3 text-gray-500"
                                     onClick={() => setShowPassword(!showPassword)}
                                 >
-                                    {showPassword ? <FaEyeSlash size={20}/> : <FaEye size={20}/>}
+                                    {showPassword ? <FaEyeSlash size={20}/> : <FaEye size={20}/> }
                                 </button>
                             </div>
-
+    
+                            {error && <div className="text-red-500 text-center">{error}</div>}
+    
                             <Button type="submit" className="w-full mt-8">
                                 Login
                             </Button>

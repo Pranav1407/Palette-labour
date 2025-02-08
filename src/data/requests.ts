@@ -1,4 +1,4 @@
-import { fetchHoardingsResponse, FetchSingleHoardingResponse, LoginCredentials, LoginResponse, MediaUploadResponse } from "@/types/Types";
+import { fetchHoardingsResponse, FetchRequestDetailsResponse, FetchSingleHoardingResponse, LoginCredentials, LoginResponse, MediaUploadResponse } from "@/types/Types";
 import axios from "axios";
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -51,6 +51,28 @@ export const uploadMedia = async (mediaData: FormData): Promise<MediaUploadRespo
 export const fetchSingleHoarding = async (id: string): Promise<FetchSingleHoardingResponse> => {
     try {
         const response = await axios.get(`${API_URL}/hoarding/details/single?hoarding_code=${id}`);
+        return response.data;
+    }
+    catch (error) {
+        console.error('Error fetching single hoarding:', error);
+        throw error;
+    }
+}
+
+export const fetchRequestDetails = async (id: string): Promise<FetchRequestDetailsResponse> => {
+    try {
+        const response = await axios.post(`${API_URL}/details/request/full?request_id=${id}`);
+        return response.data;
+    }
+    catch (error) {
+        console.error('Error fetching single hoarding:', error);
+        throw error;
+    }
+}
+
+export const redoRejected = async (request_id:(string | undefined) , data:Number[]):Promise<any> => {
+    try {
+        const response = await axios.post(`${API_URL}/redo/rejected?request_id=${request_id}`, data);
         return response.data;
     }
     catch (error) {

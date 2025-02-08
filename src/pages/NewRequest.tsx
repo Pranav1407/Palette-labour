@@ -73,7 +73,7 @@ const NewRequest = () => {
             {error ? error : 'Add new hoarding'}
           </div>
         ) : (
-          <Card className="mt-6 cursor-pointer" onClick={() => navigate(`/hoarding/${hoarding.Hoarding_ID}`, {state: { hoardingCode: hoarding.Hoarding_Code, hoardingID: hoarding.Hoarding_ID }})}>
+          <Card className="mt-6 cursor-pointer" onClick={() => navigate(`/hoarding/${hoarding.Hoarding_ID}`, {state: { hoardingcode: hoarding.Hoarding_Code, hoardingID: hoarding.Hoarding_ID }})}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-10">

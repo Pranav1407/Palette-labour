@@ -1,0 +1,9 @@
+{
+    "short_name": "Labour",
+    "name": "Palette Labour",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#fff",
+    "theme_color": "#fff",
+    "icons" : []
+}

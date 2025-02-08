@@ -32,7 +32,7 @@ export default function ImagePreview() {
 
       <div className="h-screen p-4">
         <div className="h-full">
-          <img 
+          <img
             src={imageUrl}
             alt="Preview" 
             className="w-full h-auto rounded-lg shadow-lg"
