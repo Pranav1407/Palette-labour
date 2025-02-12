@@ -97,6 +97,7 @@ export interface RequestData {
   action_by: number;
   created_at: string;
   updated_at: string;
+  comment: string | null;
 }
 
 export interface HoardingDetailsData {

@@ -1,6 +1,5 @@
-import { ArrowLeft, Plus, X, Camera, Map, Upload } from "lucide-react"
+import { ArrowLeft, Plus, X, Camera, Map, Upload, Check } from "lucide-react"
 import { useNavigate, useLocation } from "react-router-dom"
-// import { hoardingData } from "@/mockData"
 import { Card, CardContent } from "@/components/ui/card"
 import { useState, useEffect } from "react"
 import { uploadMedia, addHoardingTask, fetchSingleHoarding } from "@/data/requests";
@@ -13,15 +12,13 @@ export default function HoardingDetail() {
   const location = useLocation();
   const code = location.state.hoardingcode;
   const id = location.state.hoardingID;
-  const rejected_media_ids = location.state.rejectedMediaIds;
   const [cameraImages, setCameraImages] = useState<string[]>([])
   const [cameraVideos, setCameraVideos] = useState<string[]>([])
   const [geoMapImage, setGeoMapImage] = useState<string>('')
   const [hoardingData, setHoardingData] = useState<SingleHoarding>()
-  // const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
   const [uploading, setUploading] = useState(false)
-  const [addingTask, setAddingTask] = useState(false)
   const [showOptions, setShowOptions] = useState(false);
 
   const menuVariants = {
@@ -48,8 +45,6 @@ export default function HoardingDetail() {
   useEffect(() => {
     fetchHoardingDetail();
   },[id]);
-
-  console.log("rejected_media_ids", rejected_media_ids);
 
   const handleCameraImageCapture = (event: React.ChangeEvent<HTMLInputElement>) => {
     // setShowOptions(false);
@@ -90,21 +85,26 @@ export default function HoardingDetail() {
     formData.append('uploaded_by', user_id || '');
     formData.append('hoarding_id', id || '');
   
+    // Convert base64 geoMapImage to blob before appending
     if (geoMapImage) {
       const geoMapBlob = await fetch(geoMapImage).then(r => r.blob());
-      formData.append('geo_images', geoMapBlob);
+      console.log('GeoMap Blob:', geoMapBlob);
+      formData.append('geo_images', geoMapBlob, 'geomap.jpg');
     }
   
-    await Promise.all(
-      cameraImages.map(async (imageUrl) => {
-        const imageBlob = await fetch(imageUrl).then(r => r.blob());
-        formData.append(`images`, imageBlob);
-      })
-    );
+    for (let i = 0; i < cameraImages.length; i++) {
+      const imageBlob = await fetch(cameraImages[i]).then(r => r.blob());
+      console.log(`Image ${i} Blob:`, imageBlob);
+      formData.append('images', imageBlob, `image${i}.jpg`);
+    }
   
     if (cameraVideos.length > 0) {
       const videoBlob = await fetch(cameraVideos[0]).then(r => r.blob());
-      formData.append('video', videoBlob);
+      formData.append('video', videoBlob, 'video.mp4');
+    }
+
+    for (const pair of formData.entries()) {
+      console.log(pair[0], pair[1]);
     }
   
     try {
@@ -120,20 +120,18 @@ export default function HoardingDetail() {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
-      try {
-        await addHoardingTask(taskData);
-        setAddingTask(false);
-        setTimeout(() => {
-          setShowSuccess(true);
-          navigate('/home');
-        }, 2000);
-      } catch (error) {
-        toast.error('Error adding task. Please try again later.');
-      }
+
+      await addHoardingTask(taskData);
+      setShowSuccess(true);
+      setTimeout(() => {
+        navigate('/home');
+      }, 2000);
     } catch (error) {
+      setUploading(false);
       toast.error('Error uploading media. Please try again later.');
     }
-};
+  };
+
 
   
   const handleGeoMapImageCapture = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -141,10 +139,28 @@ export default function HoardingDetail() {
     const file = event.target.files?.[0]
     
     if (file) {
-      // setLoading(true);
+      setLoading(true);
       try {
+
+        if (!navigator.geolocation) {
+          toast.error('Geolocation is not supported by your browser');
+          return;
+        }
+
+        const permissionResult = await navigator.permissions.query({ name: 'geolocation' });
+
+        if (permissionResult.state === 'denied') {
+          toast.error('Please enable location access to continue');
+          setLoading(false);
+          return;
+        }
+
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject);
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+          });
         });
         
         const response = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${position.coords.latitude}&lon=${position.coords.longitude}&format=json`);
@@ -258,14 +274,15 @@ export default function HoardingDetail() {
         };
         
         img.src = URL.createObjectURL(file);
-        // setLoading(false);
+        setLoading(false);
       } catch (error) {
-        // setLoading(false);
+        setLoading(false);
         const imageUrl = URL.createObjectURL(file);
         setGeoMapImage(imageUrl);
       }
     }
   }
+
 
   return (
     <div className="flex flex-col gap-4 bg-[#FCFCFC]">
@@ -306,9 +323,9 @@ export default function HoardingDetail() {
         }
         {(geoMapImage.length <= 0 && cameraImages.length <= 0) &&
           <div
-            className="text-[#d9d9d9] text-[32px] text-center px-2"
+            className="text-[#d9d9d9] text-[32px] text-center px-2 flex items-center justify-center h-[70vh]"
           >
-            Share images/videos for approval.
+            {loading ? 'Processing image...' : 'Share Geo Map Image and Camera Images to proceed'}
           </div>
         }
         <div className="space-y-6 mb-24">
@@ -477,9 +494,9 @@ export default function HoardingDetail() {
 
       {showSuccess && (
         <div className="fixed inset-0 bg-green-500 flex flex-col items-center justify-center z-50">
-          <div className="loader" />
+          <Check size={64} className="text-white" />
           <h2 className="text-white text-3xl font-bold">
-            {uploading ? 'Uploading...' : addingTask ? 'Adding Task...' : 'Request Sent!'}
+            Request Sent!
           </h2>
         </div>
       )}
