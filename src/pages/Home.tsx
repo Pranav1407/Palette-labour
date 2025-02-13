@@ -29,11 +29,14 @@ export default function Home() {
     }
   }
 
-  const filteredData = hoardingData?.length ? hoardingData.filter(item => {
+  const filteredData = hoardingData?.length ? hoardingData
+  .filter(item => {
     const matchesTab = activeTab === "all" || item.current_status === activeTab
     const matchesSearch = item.hoarding_details["Location/Route"].toLowerCase().includes(searchQuery.toLowerCase())
     return matchesTab && matchesSearch
-  }) : []
+  })
+  .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+  : []
 
   useEffect(() => {
     getHoardings();
