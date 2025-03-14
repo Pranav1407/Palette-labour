@@ -106,7 +106,7 @@ export default function Home() {
                                 className="w-20 h-20 min-w-20 min-h-20 object-cover rounded-full"
                               />
                               <div className="space-y-2">
-                                <h3 className="font-medium">{item.hoarding_details["Location/Route"]}</h3>
+                                <h3 className="font-medium">{item.hoarding_details["Hoarding Code"]}, {item.hoarding_details["Location/Route"]}</h3>
                                 <p className="text-sm text-gray-600">{item.hoarding_details.District}</p>
                                 <p className="text-sm text-gray-600">Size: {item.hoarding_details["Size W"]} x {item.hoarding_details["Size H"]}</p>
                               </div>

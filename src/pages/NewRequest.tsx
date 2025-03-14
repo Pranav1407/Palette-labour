@@ -83,7 +83,7 @@ const NewRequest = () => {
                     className="w-20 h-20 object-cover rounded-full"
                   />
                   <div className="space-y-2">
-                    <h3 className="font-medium">{hoarding["Location/Route"]}</h3>
+                    <h3 className="font-medium">{hoarding.Hoarding_Code}, {hoarding["Location/Route"]}</h3>
                     <p className="text-sm text-gray-600">{hoarding.District}</p>
                     <p className="text-sm text-gray-600">Size: {hoarding["Size W"]} x {hoarding["Size H"]}</p>
                   </div>

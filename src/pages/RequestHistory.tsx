@@ -267,7 +267,7 @@ const RequestHistory = () => {
                         className="w-20 h-20 object-cover rounded-full"
                     />
                     <div className="space-y-2">
-                      <h3 className="font-medium">{hoardingData && hoardingData["Location/Route"]}</h3>
+                      <h3 className="font-medium">{hoardingData && `${hoardingData["Location/Route"]}`}</h3>
                       <p className="text-sm text-gray-600">{hoardingData && hoardingData.District}</p>
                     </div>
                   </div>
