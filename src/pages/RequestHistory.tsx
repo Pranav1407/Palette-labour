@@ -263,11 +263,11 @@ const RequestHistory = () => {
                   <div className="flex items-center gap-2">
                     <img 
                         src="https://images.unsplash.com/photo-1563990308267-cd6d3cc09318?q=80&w=1000&auto=format&fit=crop"
-                        alt={hoardingData && hoardingData["Location/Route"]}
+                        alt={hoardingData && `${hoardingData.Hoarding_Code}, ${hoardingData["Location/Route"]}`}
                         className="w-20 h-20 object-cover rounded-full"
                     />
                     <div className="space-y-2">
-                      <h3 className="font-medium">{hoardingData && `${hoardingData["Location/Route"]}`}</h3>
+                      <h3 className="font-medium">{hoardingData && `${hoardingData.Hoarding_Code}, ${hoardingData["Location/Route"]}`}</h3>
                       <p className="text-sm text-gray-600">{hoardingData && hoardingData.District}</p>
                     </div>
                   </div>

@@ -102,6 +102,7 @@ export interface RequestData {
 
 export interface HoardingDetailsData {
   Hoarding_ID: number;
+  Hoarding_Code: string;
   District: string;
   "Location/Route": string;
   "Direction/Route": string;
